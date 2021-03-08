@@ -1,0 +1,136 @@
+@extends('dashboard.layouts.app')
+
+@section('content')
+    @php $model = 'states'; @endphp
+    <div class="block-header">
+        <div class="row">
+            <div class="col-lg-6 col-md-8 col-sm-12">
+                <h2><a href="javascript:void(0);" class="btn btn-xs btn-link btn-toggle-fullwidth"><i class="fa fa-arrow-right"></i></a> @lang('admin.dashboard')</h2>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ route('dashboard.home') }}"><i class="icon-home"></i></a></li>
+                    <li class="breadcrumb-item active"><a href="{{ route('dashboard.'.$model.'.index') }}">@lang('admin.'.$model)</a></li>
+                    <li class="breadcrumb-item active">@lang('admin.edit_element')</li>
+                </ul>
+            </div>
+            <div class="col-lg-6 col-md-4 col-sm-12 text-right">
+                <div class="bh_chart hidden-xs">
+                    <div class="float-left m-l-15">
+                        <small>@lang('admin.visitors')</small>
+                        <h6 class="mb-0 mt-1"><i class="icon-user"></i> 1,784</h6>
+                    </div>
+                    <span class="bh_visitors float-right">2,5,1,8,3,6,7,5</span>
+                </div>
+                <div class="bh_chart hidden-sm">
+                    <div class="float-left m-l-15">
+                        <small>@lang('admin.visits')</small>
+                        <h6 class="mb-0 mt-1"><i class="icon-globe"></i> 325</h6>
+                    </div>
+                    <span class="bh_visits float-right">10,8,9,3,5,8,5</span>
+                </div>
+                <div class="bh_chart hidden-sm">
+                    <div class="float-left m-l-15">
+                        <small>@lang('admin.statics')</small>
+                        <h6 class="mb-0 mt-1"><i class="icon-bubbles"></i> 13</h6>
+                    </div>
+                    <span class="bh_chats float-right">1,8,5,6,2,4,3,2</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row clearfix">
+        <div class="col-lg-12 col-md-12">
+            <div class="card">
+                <div class="header">
+                    <h2> @lang('admin.edit_element')</h2>
+                </div>
+                <div class="body">
+                    @if ($errors->any())
+                        <div class="alert alert-danger">
+                            <ul style="list-style-type: none">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+                    <form action="{{ route('dashboard.'. $model . '.update',$row->id) }}" method="post">
+                        @csrf
+                        @method('put')
+                        <div class="input-group mb-3">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">@lang('admin.city_ar')</span>
+                            </div>
+                            <input type="text" name="name_ar" class="form-control" value="{{ $row->name_ar }}" placeholder="@lang('admin.name_ar')" aria-label="Username" aria-describedby="basic-addon1">
+                        </div>
+                        <div class="input-group mb-3">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">@lang('admin.city_en')</span>
+                            </div>
+                            <input type="text" name="name_en" class="form-control" value="{{ $row->name_en }}" placeholder="@lang('admin.name_en')" aria-label="Username" aria-describedby="basic-addon1">
+                        </div>
+                        <div class="input-group mb-3">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">@lang('admin.country')</span>
+                            </div>
+                            <select name="country_id" class="form-control">
+                                @foreach($countries as $country)
+                                    <option {{ $country->id == $row->country_id ? 'selected' : '' }} value="{{ $country->id }}">{{ $country['name_'.App()->getLocale()] }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="input-group mb-3">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">@lang('admin.city')</span>
+                            </div>
+                            <select name="city_id" class="form-control">
+                                @foreach($cities as $city)
+                                    <option {{ $city->id == $row->city_id ? 'selected' : '' }} value="{{ $city->id }}">{{ $city['name_'.App()->getLocale()] }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="input-group mb-3">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">@lang('admin.status')</span>
+                            </div>
+                            <select name="status" class="form-control">
+                                <option {{ $row->status == 1 ? 'selected' : '' }} value="1">@lang('admin.active')</option>
+                                <option {{ $row->status == 0 ? 'selected' : '' }} value="0">@lang('admin.deactive')</option>
+                            </select>
+                         </div>
+                        <button type="submit" class="btn btn-primary"><i class="fa fa-plus"></i> @lang('admin.edit_element')</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection
+
+@push('css')
+
+@endpush
+
+@push('js')
+    @if(session()->has('success'))
+        <script>
+            toastr.success("{{ session()->get('success') }}","{{ __('admin.done') }}",{
+                "positionClass": "toast-bottom-{{ App()->getLocale() == 'ar' ? 'left' : 'right' }}",
+            });
+        </script>
+    @endif
+    <script>
+        $("select[name=country_id]").on('change',function () {
+            $.ajax({
+                url : "{{ route('dashboard.states.related.country-cities') }}",
+                data : {country_id: $(this).val(),_token: '{{ csrf_token() }}'},
+                method: "post",
+                success: function (data) {
+                    $("select[name=city_id]").html("");
+                    data.forEach(function (city){
+                        $("select[name=city_id]").append(`<option value="${city.id}">${city.name}</option>`);
+                    });
+                }
+            });
+        });
+    </script>
+@endpush
